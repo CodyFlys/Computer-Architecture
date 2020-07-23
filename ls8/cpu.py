@@ -18,6 +18,9 @@ class CPU:
         self.POP = 0b01000110 # POP
         self.PUSH = 0b01000101 # PUSH
         self.reg[7] = 0xF4
+        self.CALL = 0b01010000
+        self.RET = 0b00010001
+        self.ADD = 0b10100000
 
     def ram_read(self, mar):
         return self.ram[mar] # return our memory address register
@@ -114,7 +117,7 @@ class CPU:
                 # create a variable(value), from ram at address 3 which is 8
                 value = self.ram[self.pc+2] # value = 8
                 self.reg[register_number] = value
-                print(self.reg)
+                # print(self.reg)
                 self.pc += 3
                 # print(f'REGISTER NUMBER: {register_number} VALUE: {value}')
 
@@ -139,13 +142,37 @@ class CPU:
                 # set sp pos in ram to be registry value of ram at next instruction
                 self.ram[self.reg[7]] = self.reg[self.ram[self.pc+1]]
                 self.pc += 2
-                # print(self.ram)
+                print(self.ram)
 
             elif ir == self.POP:
                 self.reg[self.ram[self.pc+1]] = self.ram[self.reg[7]]
                 self.reg[7] += 1
                 self.reg[7] &= 0xff
                 self.pc += 2
+
+            elif ir == self.CALL:
+                # looking ahead in the ir
+                returnAddress = self.pc + 2
+                # decrement sp
+                self.reg[7] -= 1
+                # setting sp in ram to be what we looked ahead to
+                self.ram[self.reg[7]] = returnAddress
+                self.pc = self.reg[self.ram[self.pc+1]]
+
+            elif ir == self.RET:
+                # return address set to sp in ram
+                returnAddress = self.ram[self.reg[7]]
+                # setting reg in ram at next ir to be current ram sp
+                self.reg[self.ram[self.pc+1]] = self.ram[self.reg[7]]
+                # Increment stack pointer
+                self.reg[7] += 1
+                # self.pc becomes the return address we set
+                self.pc = returnAddress
+
+            elif ir == self.ADD:
+                self.alu("ADD", reg_a, reg_b)
+                self.pc += 3
+            
             else:
                 print(f'Unkown instruction {ir} at address {self.pc}')
                 sys.exit(1)
