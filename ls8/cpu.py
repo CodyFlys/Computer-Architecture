@@ -21,6 +21,11 @@ class CPU:
         self.CALL = 0b01010000
         self.RET = 0b00010001
         self.ADD = 0b10100000
+        self.JMP = 0b01010100
+        self.JEQ = 0b01010101
+        self.JNE = 0b01010110
+        self.flag = 0b00000000
+        self.CMP = 0b10100111
 
     def ram_read(self, mar):
         return self.ram[mar] # return our memory address register
@@ -75,6 +80,22 @@ class CPU:
             self.reg[reg_a] += self.reg[reg_b]
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+
+        # `FL` bits: `00000LGE`
+        elif op == "CMP":
+            # EQUAL
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.flag = 0b00000001
+            
+            # LESS THAN
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                self.flag = 0b00000100
+
+            # GREATER THAN
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.flag = 0b00000010
+            else:
+                self.flag = 0b00000000
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -172,6 +193,42 @@ class CPU:
             elif ir == self.ADD:
                 self.alu("ADD", reg_a, reg_b)
                 self.pc += 3
+
+
+
+            # SPRINT ----
+            elif ir == self.CMP:
+                self.alu("CMP", reg_a, reg_b)
+                self.pc += 3
+                # print("CMP")
+
+
+            # Jump to the address stored in the given register.
+            # Set the `PC` to the address stored in the given register.
+            elif ir == self.JMP:
+                # self.pc becomes the register in ram at self.pc+1 to land on the correct spot I believe line 75 of the IR file
+                self.pc = self.reg[self.ram[self.pc + 1]]
+                # print("JMP")
+
+            # If `equal` flag is set (true), jump to the address stored in the given register.
+            elif ir == self.JEQ:
+                # check if flag is 1
+                if self.flag == 0b00000001:
+                    # if it is i go to the register in ram at pc +1
+                    self.pc = self.reg[self.ram[self.pc + 1]]
+                else:
+                    self.pc += 2
+
+            # If `E` flag is clear (false, 0), jump to the address stored in the given register.
+            elif ir == self.JNE:
+                # here I check if the flag is not equal to 1 so that my alu will work easier.
+                if self.flag != 0b00000001:
+                    # if it isn't 1 we will go to reg in ram at pc +1
+                    self.pc = self.reg[self.ram[self.pc + 1]]
+                    # print("JNE")
+                else:
+                    self.pc += 2
+
             
             else:
                 print(f'Unkown instruction {ir} at address {self.pc}')
